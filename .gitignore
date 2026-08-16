@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 仮想環境（C:\Users\user\venvs\rational_activation に置くのでここには来ないはずだが念のため）
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 大きな成果物は git に入れない（results 配下の図・表・json は追跡する）
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+results/**/checkpoints/
+
+# Hugging Face のデータ/モデルキャッシュ
+.cache/
+data/raw/
+
+# OS
+Thumbs.db
+desktop.ini
