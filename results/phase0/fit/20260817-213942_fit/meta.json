@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-08-17T21:39:43",
+  "seed": 0,
+  "git": {
+    "commit": "876c98f936023273759e13d3111168a8c7804449",
+    "commit_short": "876c98f93602",
+    "branch": "master",
+    "is_dirty": true,
+    "dirty_files": [
+      "M scripts/run_phase0_fit.py",
+      " M src/rational/pade.py",
+      "?? results/"
+    ]
+  },
+  "env": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\user\\venvs\\rational_activation\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "matplotlib": "3.11.1",
+      "pandas": "3.0.5",
+      "torch": "2.13.0+cu130",
+      "transformers": "5.15.0",
+      "datasets": "5.0.1",
+      "yaml": "6.0.3"
+    }
+  },
+  "command": "scripts/run_phase0_fit.py --config configs/phase0_fit.yaml",
+  "cwd": "G:\\マイドライブ\\TMU_Master_Research\\Transformerにおける学習可能有理活性化関数の評価と改善"
+}

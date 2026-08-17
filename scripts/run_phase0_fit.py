@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -70,6 +71,8 @@ def _row(
 def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
     fitcfg = cfg["fit"]
     weight_fn = make_weight(fitcfg.get("weight"))
+    ext = cfg.get("extrapolation", {"lo": -15.0, "hi": 15.0})
+    ext_lo, ext_hi = float(ext["lo"]), float(ext["hi"])
     rows: list[dict] = []
     coeffs: dict[str, dict] = {}
 
@@ -85,6 +88,7 @@ def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
 
             for deg in cfg["degrees"]:
                 m, n = int(deg["m"]), int(deg["n"])
+                t_block = time.perf_counter()
                 cond = vander_cond(xf, m)
 
                 # --- 参照1: x=0 での真の Pade 近似（論文の公式初期化の作り方） ---
@@ -123,15 +127,19 @@ def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
                     tail_matched = m_eff != m
                     label = f"{d.name}{'(tail-matched)' if tail_matched else ''}"
 
-                    a_p2, b_p2 = pade_at_zero_numeric(target_name, m_eff, n)
-                    r_lin2 = (
-                        r_lin
-                        if m_eff == m
-                        else fit_linearized(xf, ff, m_eff, n, weights=wf,
-                                            sk_iters=int(fitcfg.get("sk_iters", 0)))
-                    )
+                    # 裾を揃えた変種 (m=2n+1) では Pade@0 を初期値に使わない。
+                    # 分母の構造が違ううえ、m が大きく sympy の級数展開が非常に重い
+                    # （n=6 なら m=13、19次まで展開することになる）。
+                    if tail_matched:
+                        r_lin2 = fit_linearized(xf, ff, m_eff, n, weights=wf,
+                                                sk_iters=int(fitcfg.get("sk_iters", 0)))
+                        pade_init = None
+                    else:
+                        r_lin2 = r_lin
+                        pade_init = pade_at_zero_numeric(target_name, m_eff, n)
+
                     inits = make_inits(
-                        m_eff, n, linear_fit=r_lin2, pade_coeffs=(a_p2, b_p2),
+                        m_eff, n, linear_fit=r_lin2, pade_coeffs=pade_init,
                         n_random=int(fitcfg.get("n_random_inits", 1)),
                         seed=int(cfg.get("seed", 0)),
                     )
@@ -144,8 +152,19 @@ def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
                     costs = [r.cost for r in allr]
                     spread = (max(costs) - min(costs)) / max(min(costs), 1e-300)
 
+                    # 極・折れ点は **フィット区間の中と外の両方**で数える。
+                    # 区間内だけ見ると「極も折れ点もない」と誤った結論になる。
+                    # 実際 gelu_tanh [5,4] を [-3,3] で fit すると極は x≈±5.1、
+                    # すなわち区間のすぐ外に出る。Transformer の pre-activation は
+                    # そこに届きうるので、区間外こそが問題になる。
                     n_sign = len(d.kinks(best.b, lo, hi)) if d.name == "abs" else 0
                     n_poles = len(d.poles(best.b, lo, hi)) if d.can_have_poles else 0
+                    n_sign_ext = len(d.kinks(best.b, ext_lo, ext_hi)) if d.name == "abs" else 0
+                    n_poles_ext = len(d.poles(best.b, ext_lo, ext_hi)) if d.can_have_poles else 0
+                    # 区間外での挙動を1つの数字で見るための代表点
+                    probe = np.array([ext_lo / 1.5, ext_hi / 1.5])  # 既定なら x = -10, +10
+                    f_probe = eval_rational(best.a, best.b, probe, d)
+                    tgt_probe = f(probe)
 
                     rows.append(
                         _row(target_name, iname, lo, hi, m_eff, n, label, "nonlinear", err,
@@ -153,6 +172,11 @@ def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
                               "eff_deg_q": d.effective_degree(n),
                               "tail_exp": d.tail_exponent(m_eff, n),
                               "n_sign_changes": n_sign, "n_poles": n_poles,
+                              "n_sign_changes_ext": n_sign_ext, "n_poles_ext": n_poles_ext,
+                              "f_at_neg_probe": float(f_probe[0]),
+                              "f_at_pos_probe": float(f_probe[1]),
+                              "target_at_neg_probe": float(tgt_probe[0]),
+                              "target_at_pos_probe": float(tgt_probe[1]),
                               "init_spread": spread, "cost": best.cost,
                               "max_abs_d2": smooth["max_abs_d2"], "tv_d1": smooth["tv_d1"],
                               "best_init": best.init_source})
@@ -167,6 +191,12 @@ def run(cfg: dict, run_dir: Path) -> pd.DataFrame:
                         "sup": err["sup"], "l2": err["l2"],
                         "n_params": (m_eff + 1) + n,
                     }
+
+                print(
+                    f"  {target_name:10s} {iname:6s} [{m},{n}] done in "
+                    f"{time.perf_counter() - t_block:6.2f}s",
+                    flush=True,
+                )
 
                 # 論文どおりの Pade@0 初期化も Phase 1 用に保存（PAU 再現の担保）
                 coeffs[f"{target_name}|{iname}|m{m}n{n}|pade@0"] = {

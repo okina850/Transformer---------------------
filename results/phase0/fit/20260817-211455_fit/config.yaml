@@ -1,0 +1,41 @@
+seed: 0
+targets:
+- gelu_tanh
+- silu
+intervals:
+- name: wide
+  lo: -6.0
+  hi: 6.0
+- name: paper
+  lo: -3.0
+  hi: 3.0
+degrees:
+- m: 3
+  n: 2
+- m: 4
+  n: 3
+- m: 5
+  n: 4
+- m: 6
+  n: 5
+- m: 7
+  n: 6
+denominators:
+- kind: abs
+- kind: sqrt
+  eps: 0.001
+- kind: square
+- kind: free
+tail_matched_square: true
+fit:
+  grid: uniform
+  n_fit: 2001
+  n_eval: 20001
+  sk_iters: 5
+  weight: uniform
+  n_random_inits: 2
+extrapolation:
+  lo: -15.0
+  hi: 15.0
+  n: 3001
+figures: true
