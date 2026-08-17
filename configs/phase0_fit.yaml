@@ -1,0 +1,57 @@
+# Phase 0 / Day 2: 有理近似の係数フィッティングと誤差測定
+#
+# 目的: 次数 × 分母設計 × 近似区間 の全組合せで近似誤差を測り、
+#       Phase 1 で使う初期化係数 (coefficients.json) を作る。
+# 実行: python scripts/run_phase0_fit.py --config configs/phase0_fit.yaml
+
+seed: 0
+
+# 近似の目標関数。
+# gelu_tanh は HF GPT-2 が実際に使う版（gelu_new）なので差し替え実験の目標はこれ。
+# silu は PAU 論文 Table 6 に対応列があり、検算の担保になる。
+targets:
+  - gelu_tanh
+  - silu
+
+# 近似区間。
+# wide  : research_context の主軸。Transformer の pre-activation を広めに見込む
+# paper : PAU / RAFT が実際に fit に使った区間。追試のベースライン再現に必須
+intervals:
+  - {name: wide,  lo: -6.0, hi: 6.0}
+  - {name: paper, lo: -3.0, hi: 3.0}
+
+# 型 [m, n]。m = 分子次数、n = 分母内多項式 A(x) の次数。
+# [5,4] は PAU / RAFT / KAT が共通して採用している型。
+degrees:
+  - {m: 3, n: 2}
+  - {m: 4, n: 3}
+  - {m: 5, n: 4}
+  - {m: 6, n: 5}
+  - {m: 7, n: 6}
+
+# 分母設計。効果は src/rational/denominators.py の表を参照。
+denominators:
+  - {kind: abs}                 # PAU 原論文 / RAFT / KAT が使う形
+  - {kind: sqrt, eps: 1.0e-3}   # 提案（平滑・実効次数と裾は abs と一致）
+  - {kind: square}              # research_context 旧第一候補（裾が変わる）
+  - {kind: free}                # 制約なし。極が実際に出るかの対照群
+
+# 論点A: square は実効分母次数が 2n になるので、裾を abs と揃えるには
+# 分子次数を m = 2n+1 にする必要がある。その変種も測る。
+tail_matched_square: true
+
+fit:
+  grid: uniform      # フィット点の配置。uniform は重みなし L2 内積の素直な離散化
+  n_fit: 2001        # フィット点数
+  n_eval: 20001      # 誤差評価点数（フィット点の10倍・半格子ずらしで別グリッド）
+  sk_iters: 5        # Sanathanan-Koerner 反復回数
+  weight: uniform    # {kind: gaussian, sigma: 2.0} も可
+  n_random_inits: 2  # ランダム初期値の本数（局所解チェック用）
+
+# 裾の挙動を可視化する範囲（近似区間の外での外挿を見る）
+extrapolation:
+  lo: -15.0
+  hi: 15.0
+  n: 3001
+
+figures: true

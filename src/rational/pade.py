@@ -17,10 +17,20 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def pade_at_zero(expr, x, m: int, n: int, exact: bool = True):
-    """:math:`f` の [m/n] 次 Padé 近似を x=0 で求める。
+class PadeDegenerateError(RuntimeError):
+    """[m/n] の Padé 近似が一意に定まらない場合に送出される。
 
-    PAU の記法に合わせ、分母は :math:`Q(x) = 1 + \\sum_{k=1}^{n} b_k x^k`
+    Padé 表には「ブロック」と呼ばれる退化した領域が存在し、
+    そこでは分母を決める線形系が特異になる。偶関数・奇関数では
+    Taylor 係数が一つ飛びに 0 になるため、これが頻繁に起きる
+    （例: gelu_tanh の [7/3]）。異常ではなく Padé 近似の性質である。
+    """
+
+
+def pade_at_zero(expr, x, m: int, n: int, exact: bool = True):
+    r""":math:`f` の [m/n] 次 Padé 近似を x=0 で求める。
+
+    PAU の記法に合わせ、分母は :math:`Q(x) = 1 + \sum_{k=1}^{n} b_k x^k`
     （**定数項なし**）に正規化して返す。
 
     Returns
@@ -29,47 +39,78 @@ def pade_at_zero(expr, x, m: int, n: int, exact: bool = True):
              ``b`` は長さ n（:math:`b_1..b_n`、定数項 1 は含めない）。
              ``exact=True`` なら sympy の有理数、False なら float。
 
+    Raises
+    ------
+    PadeDegenerateError
+        ``exact=True`` で線形系が一意に解けないとき。
+        ``exact=False`` のときは最小ノルム解にフォールバックするので送出されない
+        （初期値として使う分にはそれで十分なため）。
+
     Notes
     -----
     :math:`P(x) = f(x)Q(x) + O(x^{m+n+1})` を係数比較して解く。
     Taylor 係数を :math:`c_i` とすると
-    - :math:`i = m+1, \\dots, m+n`: :math:`\\sum_{k=0}^{n} b_k c_{i-k} = 0`（:math:`b_0=1`）→ b が決まる
-    - :math:`i = 0, \\dots, m`: :math:`a_i = \\sum_{k=0}^{n} b_k c_{i-k}`
+    - :math:`i = m+1, \dots, m+n`: :math:`\sum_{k=0}^{n} b_k c_{i-k} = 0`（:math:`b_0=1`）→ b が決まる
+    - :math:`i = 0, \dots, m`: :math:`a_i = \sum_{k=0}^{n} b_k c_{i-k}`
     """
     import sympy as sp
 
     order = m + n
-    series = sp.series(expr, x, 0, order + 1).removeO()
-    series = sp.expand(series)
+    series = sp.expand(sp.series(expr, x, 0, order + 1).removeO())
     c = [sp.nsimplify(series.coeff(x, i)) for i in range(order + 1)]
 
-    b_syms = sp.symbols(f"b1:{n + 1}") if n > 0 else ()
-    b_syms = list(b_syms) if isinstance(b_syms, tuple) else [b_syms]
-    bb = [sp.Integer(1)] + b_syms
+    if n == 0:
+        a_exact = [c[i] for i in range(m + 1)]
+        if exact:
+            return a_exact, []
+        return np.array([float(v) for v in a_exact]), np.array([])
+
+    b_syms = list(sp.symbols(f"b1:{n + 1}"))
+    if not isinstance(b_syms, list):
+        b_syms = [b_syms]
 
     eqs = [
-        sum(bb[k] * c[i - k] for k in range(0, min(i, n) + 1))
+        sum(([sp.Integer(1)] + b_syms)[k] * c[i - k] for k in range(0, min(i, n) + 1))
         for i in range(m + 1, m + n + 1)
     ]
     sol = sp.solve(eqs, b_syms, dict=True)
-    if not sol:
-        raise RuntimeError(
-            f"Pade [{m}/{n}] の連立方程式が解けなかった（分母が退化している可能性）"
+
+    if sol and all(s in sol[0] for s in b_syms):
+        bb = [sp.Integer(1)] + [sp.nsimplify(sol[0][s]) for s in b_syms]
+        a = [
+            sp.nsimplify(sp.simplify(sum(bb[k] * c[i - k] for k in range(0, min(i, n) + 1))))
+            for i in range(m + 1)
+        ]
+        if exact:
+            return a, bb[1:]
+        return (
+            np.array([float(v) for v in a], dtype=np.float64),
+            np.array([float(v) for v in bb[1:]], dtype=np.float64),
         )
-    bb = [sp.Integer(1)] + [sp.nsimplify(sol[0][s]) for s in b_syms]
 
-    a = [
-        sp.nsimplify(sp.simplify(sum(bb[k] * c[i - k] for k in range(0, min(i, n) + 1))))
-        for i in range(m + 1)
-    ]
-    b = bb[1:]
-
+    # ---- 退化している場合 ----
     if exact:
-        return a, b
-    return (
-        np.array([float(v) for v in a], dtype=np.float64),
-        np.array([float(v) for v in b], dtype=np.float64),
+        raise PadeDegenerateError(
+            f"Pade [{m}/{n}] は退化しており一意に定まらない（Padé 表のブロック）"
+        )
+
+    # 数値の最小ノルム解にフォールバックする。
+    # 非線形最小二乗の初期値として使うだけなので、一意性は要求されない。
+    cf = np.array([float(v) for v in c], dtype=np.float64)
+    M = np.zeros((n, n))
+    rhs = np.zeros(n)
+    for r, i in enumerate(range(m + 1, m + n + 1)):
+        for k in range(1, n + 1):
+            if 0 <= i - k < len(cf):
+                M[r, k - 1] = cf[i - k]
+        rhs[r] = -cf[i] if i < len(cf) else 0.0
+    b_num, *_ = np.linalg.lstsq(M, rhs, rcond=None)
+
+    bb_num = np.concatenate(([1.0], b_num))
+    a_num = np.array(
+        [sum(bb_num[k] * cf[i - k] for k in range(0, min(i, n) + 1)) for i in range(m + 1)]
     )
+    return a_num, b_num
 
 
 def to_fractions(values) -> list[Fraction]:
