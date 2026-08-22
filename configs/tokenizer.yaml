@@ -1,0 +1,16 @@
+# Phase 1 / Stage 0: TinyStories 用の BPE トークナイザ構築
+#
+# GPT-2 の既製語彙(50,257)は幼児向け英語には過大で、埋め込み層が
+# 総パラメータの過半を占めてしまう（承認済み判断②）。8k 語彙を自前学習する。
+
+seed: 0
+dataset: {name: roneneldan/TinyStories, split: train}
+
+vocab_size: 8192
+min_frequency: 2
+special_tokens: ["<|endoftext|>", "<|pad|>"]
+
+# トークナイザ学習に使う文書数（全211万件のうち一部で十分）
+n_train_docs: 200000
+
+out_dir: results/phase1/tokenizer

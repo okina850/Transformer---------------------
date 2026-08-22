@@ -1,0 +1,10 @@
+# Phase 1: decoder-only Transformer のアーキテクチャ設定
+# 承認済み: 約13.8M パラメータ、単一GPUで1条件あたり最大36分。
+
+vocab_size: 8192   # results/phase1/tokenizer/tokenizer.json と一致させること
+block_size: 256
+n_layer: 6
+n_head: 6
+d_model: 384
+d_ff: 1536         # GELU 基準。SwiGLU は自動で 2/3 に調整（swiglu_dff）
+dropout: 0.0       # 小規模・少エポックなので過学習より収束速度を優先

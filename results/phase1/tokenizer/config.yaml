@@ -1,0 +1,11 @@
+seed: 0
+dataset:
+  name: roneneldan/TinyStories
+  split: train
+vocab_size: 8192
+min_frequency: 2
+special_tokens:
+- <|endoftext|>
+- <|pad|>
+n_train_docs: 200000
+out_dir: results/phase1/tokenizer

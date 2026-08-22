@@ -1090,6 +1090,65 @@ CLAUDE.md の方針（統計的仮説検定は不要、seed 間のばらつき�
 
 ---
 
+## 2026-08-22 | Phase 1 | Stage 0: 疎通確認完了
+
+### 実装したもの
+
+- `src/model/gpt.py`, `src/model/ffn.py`: decoder-only Transformer（nanoGPT 系）。
+  FFN だけ条件で差し替わる。SwiGLU は `d_ff` を 2/3 にしてパラメータ数を揃える。
+- `src/train/optim.py`: パラメータ群分離（θ / RAF）。比 7.14（RAFT Table 10）を
+  絶対値ではなく比として実装。θ は線形減衰・RAF は定数（warmup 後）。
+- `src/train/diagnostics.py`: Pre-registration の判定基準をそのままコード化
+  （損失スパイク・発散・seed レンジ非重複）。
+- `src/train/preact_probe.py`: 評価タイミングごとの pre-activation 分位点（RQ5）。
+- `src/train/trainer.py`: 学習ループ本体。発散検出で即座に打ち切る。
+- `scripts/build_tokenizer.py`, `prepare_tinystories.py`, `train.py`
+
+### データ準備
+
+- BPE トークナイザを TinyStories 20万文書から学習。vocab=8192（承認済み判断②）
+- train.bin: 110,000,000 トークン、val.bin: 2,000,000 トークン（uint16）
+
+### パラメータ数の検証（承認済み方針の確認）
+
+| 条件 | 総パラメータ | FFN パラメータ |
+|---|---|---|
+| B1 (gelu) | 13,870,848 | 7.078M |
+| B2 (swiglu) | 13,870,848 | 7.078M |
+| R1〜R4 (rational) | 13,870,908（+60 = 6層×10） | 7.078M + 60 |
+
+**完全一致**（有理活性化の +60 は全体の 0.0004%）。想定の 13.8M 規模。
+
+### 疎通結果（各条件 100〜200 ステップ、lr_theta=3e-3 は仮値）
+
+| 条件 | 結果 | 備考 |
+|---|---|---|
+| B1 (gelu) | 完走（200 step） | loss 9.10→5.04、val_ppl 9043→172 |
+| B2 (swiglu) | 完走（100 step） | loss 9.04→5.30 |
+| R1 (abs, [-3,3]) | 完走（100 step） | **初期 sign_changes=[2,2,2]** |
+| R2 (abs, [-6,6]) | 完走（100 step） | sign_changes が学習中に 2→4→2 と変動 |
+| R3 (sqrt, [-3,3]) | **step=75 で発散検出**（grad_norm_spike） | lr_theta=3e-3 は未調整の仮値。Stage 1 で lr 探索後に再確認 |
+| R4 (sqrt, [-6,6]) | 完走（100 step） | sign_changes が 2→4→2 と変動 |
+
+**確認できたこと**:
+1. **R1 の初期 `sign_changes=2` が Phase 0 Day 3 の発見と一致**
+   （`gelu_tanh [5,4] on [-3,3]` は真の折れ点を持つ2条件の1つ）。
+   `phase1_init.json` の係数が正しく読み込まれていることの直接的な確認になる。
+2. **RQ3 の現象がこの疎通確認の時点で既に観測された。** R2/R4 で
+   `sign_changes` が学習の数十ステップで 2→4→2 と変動した。
+   本番の Stage 3 でこれを継続的に記録する意義が実地で裏付けられた。
+3. **発散検知が正しく機能した**（R3 を grad_norm_spike で正しく検出・即座に停止）。
+   Pre-registration の仕組みが実装レベルで動くことの確認になる。
+   **ただし lr_theta=3e-3 は疎通確認用の仮値であり、この発散自体は
+   Stage 1（lr 探索）の結果を予断しない。**
+
+### 次にやること
+
+Stage 1: B1 で `lr_theta` を探索し（3水準、config は疎通確認と同じ規模のまま
+ステップ数のみ本番相当に）、全条件で共通の値を確定する。
+
+---
+
 ## アイデア置き場
 
 > 実装せずにここに記録する。現在のフェーズを完了させることを優先する（CLAUDE.md スコープ管理）。

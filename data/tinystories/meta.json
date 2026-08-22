@@ -1,0 +1,9 @@
+{
+  "vocab_size": 8192,
+  "tokenizer_path": "results/phase1/tokenizer/tokenizer.json",
+  "n_train_tokens": 110000000,
+  "n_val_tokens": 2000000,
+  "n_train_docs_used": 497453,
+  "n_val_docs_used": 9932,
+  "dtype": "uint16"
+}

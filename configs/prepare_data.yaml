@@ -1,0 +1,17 @@
+# Phase 1 / Stage 0: TinyStories をトークナイズしてバイナリ列に保存する
+#
+# 学習時に毎回トークナイズすると遅いので、事前に uint16 の .bin ファイルに
+# 固定する（vocab=8192 なので uint16 で十分、GPT-2 の nanoGPT と同じ流儀）。
+#
+# 実行: python scripts/prepare_tinystories.py --config configs/prepare_data.yaml
+
+seed: 0
+dataset: {name: roneneldan/TinyStories}
+tokenizer_path: results/phase1/tokenizer/tokenizer.json
+
+# 承認済み計算予算: 1条件あたり 100M トークン。
+# train は 100M + 予備、val は小さくてよい（学習には使わないので）。
+n_train_tokens_target: 110_000_000
+n_val_tokens_target: 2_000_000
+
+out_dir: data/tinystories

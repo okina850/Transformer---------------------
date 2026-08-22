@@ -22,6 +22,11 @@ results/**/checkpoints/
 .cache/
 data/raw/
 
+# トークナイズ済みバイナリ（大きく、scripts/prepare_tinystories.py + 同じ
+# tokenizer.json + seed で決定論的に再生成できるので追跡しない。
+# meta.json（トークン数等）だけは追跡する）
+data/**/*.bin
+
 # OS
 Thumbs.db
 desktop.ini

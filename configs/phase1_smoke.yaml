@@ -1,0 +1,25 @@
+# Phase 1 / Stage 0: 疎通確認用の最小構成
+# 「まず最小構成（極小モデル・少ステップ・1 seed）でパイプライン全体を通す」
+# （CLAUDE.md 計算資源の管理方針）
+
+seed: 0
+data_dir: data/tinystories
+model: configs/phase1_model.yaml
+
+train:
+  batch_size: 8
+  total_steps: 200
+  eval_interval: 50
+  eval_batches: 5
+  lr_theta: 3.0e-3     # 疎通確認用の仮値。本番の lr_theta は Stage 1 で探索する
+  weight_decay: 0.0
+  warmup_ratio: 0.05
+  grad_clip_norm: 1.0
+
+device: cuda
+
+# ffn_kind: gelu | swiglu | rational
+# rational の場合 rational_condition で results/phase0/phase1_init.json の
+# conditions.<name> を指定する
+ffn_kind: gelu
+rational_condition: null
