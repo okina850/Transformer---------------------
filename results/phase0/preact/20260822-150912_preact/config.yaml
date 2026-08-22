@@ -1,0 +1,23 @@
+seed: 0
+model: gpt2
+dataset:
+  name: Salesforce/wikitext
+  config: wikitext-2-raw-v1
+  split: validation
+eval:
+  n_ctx: 1024
+  stride: 512
+  batch_size: 4
+  max_windows: null
+  dtype: float32
+histogram:
+  lo: -64.0
+  hi: 64.0
+  n_bins: 4096
+thresholds:
+- 3.0
+- 6.0
+- 10.0
+- 20.0
+device: cuda
+figures: true

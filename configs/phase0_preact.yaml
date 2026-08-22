@@ -1,0 +1,38 @@
+# Phase 0 / Day 3 冒頭: T5 — GPT-2 の pre-activation 分布測定（RQ5）
+#
+# 目的: Day 2 で分かった「有理活性化の問題はすべてフィット区間の外で起きる」を受けて、
+#       decoder-only LM が実際に区間外をどれだけ通るかを実測する。
+#       PAU / RAFT はいずれも [-3,3] でフィットしているので、そこが基準線。
+# 実行: python scripts/run_phase0_preact.py --config configs/phase0_preact.yaml
+
+seed: 0
+
+# GPT-2 small は decoder-only（本研究の Phase 1 と同じ系統）で、
+# 活性化は gelu_new = 我々の gelu_tanh と一致する。Phase 0 の代理モデルとして適切。
+model: gpt2
+
+dataset:
+  # datasets 5.x / huggingface_hub の新しい版は名前空間付きの ID を要求する
+  # （素の "wikitext" は HfUriError になる）
+  name: Salesforce/wikitext
+  config: wikitext-2-raw-v1
+  split: validation
+
+eval:
+  n_ctx: 1024        # GPT-2 の最大文脈長
+  stride: 512        # 窓のずらし幅
+  batch_size: 4
+  max_windows: null  # null なら全窓
+  dtype: float32     # 統計量の測定なので精度を優先する
+
+histogram:
+  lo: -64.0
+  hi: 64.0
+  n_bins: 4096
+
+# |x| がこれを超える割合を厳密に数える。
+# 3.0 = PAU / RAFT のフィット区間、6.0 = research_context の想定区間
+thresholds: [3.0, 6.0, 10.0, 20.0]
+
+device: cuda
+figures: true

@@ -1,0 +1,41 @@
+seed: 0
+targets:
+- gelu_tanh
+- silu
+intervals:
+- name: wide
+  lo: -6.0
+  hi: 6.0
+- name: paper
+  lo: -3.0
+  hi: 3.0
+degrees:
+- m: 5
+  n: 4
+- m: 6
+  n: 5
+- m: 7
+  n: 6
+eps_values:
+- 0.1
+- 0.03
+- 0.01
+- 0.003
+- 0.001
+- 0.0001
+- 1.0e-06
+- 1.0e-08
+fit:
+  grid: uniform
+  n_fit: 2001
+  n_eval: 20001
+  sk_iters: 5
+  weight: uniform
+  n_random_inits: 2
+diff_tol: 0.001
+extrapolation:
+  lo: -15.0
+  hi: 15.0
+  n: 30001
+preact_stats: null
+figures: true

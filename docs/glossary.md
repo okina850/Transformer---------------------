@@ -75,3 +75,10 @@ PyTorch で、順伝播の途中の値を横取りして記録する仕組み。
 1つの seed の結果だけでは優劣を主張できない（CLAUDE.md が最低3つを要求している理由）。
 Phase 0 は学習を伴わず決定論的なので、代わりに
 「非線形最小二乗の初期値を3通り振って同じ解に収束するか」を確認する形で趣旨を満たす。
+
+
+Head: 1ヘッド分のQKV計算とAttention
+MultiHeadAttention: Headを6個束ねて、Wo(proj)で混ぜる
+FeedFoward: 384→1536→ReLU→384、活性化関数はここ
+Block: Attention + FFN を、残差接続とLayerNormで繋いだセット
+GPTLanguageModel: token embedding + position embedding → blocks(6層) → ln_f → lm_head

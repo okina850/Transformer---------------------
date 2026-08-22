@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from src.rational.poly import horner, polyroots, real_roots_in
+from src.rational.poly import horner, polyder, polyroots, real_roots_in
 
 
 def _eval_A(b: ArrayLike, x: ArrayLike) -> NDArray[np.floating]:
@@ -105,13 +105,16 @@ class FreeDenominator(Denominator):
 class AbsDenominator(Denominator):
     r""":math:`Q(x) = 1 + |A(x)|`。PAU 原論文 Eq.(2)。極はないが折れ曲がりうる。
 
-    **折れ点は「A(x)=0 の根」ではなく「A(x) が符号を変える点」であることに注意。**
+    **折れ点は「A(x)=0 の根」ではなく「A(x) が有意な傾きで符号を変える点」。**
     :math:`A` は定数項を持たないので :math:`A(0)=0` が常に成り立ち、x=0 は必ず根になる。
     しかし :math:`A(x) \approx b_2 x^2` のように接するだけなら
     :math:`|A| = |b_2|x^2` となり微分は連続で、絶対値は何もしていない。
-    実際に折れるのは :math:`b_1 \neq 0` で :math:`A` が原点を横切るときである。
-    そしてそのとき折れ点は **x=0 ちょうど**、すなわち pre-activation 分布の
-    最頻値に一致する（Phase 1 で追跡すべき診断量）。
+
+    Phase 0 の実測では、GELU/SiLU をフィットした分母は
+    **フィット区間内では一度も符号を変えず**、符号変化が起きたのは
+    区間外（:math:`|x| \approx 4.5` および :math:`8.7`）の 3/20 条件のみだった。
+    したがって折れ点は x=0 に固定されるわけではない。
+    詳細は :meth:`kinks` の偽陽性処理を参照。
     """
 
     def __init__(self) -> None:
@@ -121,21 +124,78 @@ class AbsDenominator(Denominator):
         return 1.0 + np.abs(_eval_A(b, x))
 
     def kinks(
-        self, b: ArrayLike, lo: float, hi: float, n_samples: int = 200001
+        self,
+        b: ArrayLike,
+        lo: float,
+        hi: float,
+        n_samples: int = 200001,
+        coef_tol: float = 1e-6,
+        slope_tol: float = 1e-6,
     ) -> NDArray[np.floating]:
-        """区間内で :math:`A(x)` が符号を変える点（＝真の微分不連続点）。
+        r"""区間内の**真の**微分不連続点（:math:`A(x)` が有意な傾きで符号を変える点）。
 
         重根（接するだけ）を折れ点と誤検出しないよう、根の位置ではなく
-        密なグリッド上の符号変化で判定する。判定は区間の中点で返す。
+        密なグリッド上の符号変化で判定し、さらに2段階で偽陽性を落とす。
+
+        **(1) ``coef_tol`` による係数のノイズ除去。**
+        GELU/SiLU の最適な分母はほぼ偶関数なので理論上 :math:`b_1 = b_3 = 0` だが、
+        非線形最小二乗の解では :math:`b_1 \sim 10^{-7}` 程度の残差が乗る。
+        すると原点近傍で :math:`A(x) \approx b_1 x + b_2 x^2` となり、
+        :math:`x = -b_1/b_2 \sim 10^{-7}` に**数値誤差由来の偽の符号変化**が現れる。
+
+        **(2) ``slope_tol`` による折れの強さでの足切り。**
+        :math:`A'(x_0) = 0` の符号変化では :math:`|A|` の微分が連続なので折れではない。
+
+        この2段を入れないと折れ点を大きく水増しする（実測で 3/20 が 12/20 になった）。
         """
+        x0, _ = self.kinks_with_severity(b, lo, hi, n_samples, coef_tol, slope_tol)
+        return x0
+
+    def kinks_with_severity(
+        self,
+        b: ArrayLike,
+        lo: float,
+        hi: float,
+        n_samples: int = 200001,
+        coef_tol: float = 1e-6,
+        slope_tol: float = 1e-3,
+    ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+        r"""折れ点の位置と **折れの強さ** :math:`|A'(x_0)|` を返す。
+
+        :math:`|A|` の微分は :math:`x_0` を挟んで :math:`\mp A'(x_0)` と飛ぶので、
+        :math:`Q = 1+|A|` の微分の跳びは :math:`2|A'(x_0)|`。
+        **したがって :math:`A'(x_0) = 0` の符号変化は折れではない**（微分は連続）。
+
+        ``slope_tol`` が**絶対**閾値でよい理由: 折れ点では定義により
+        :math:`A(x_0)=0` すなわち :math:`Q(x_0) = 1` なので、
+        :math:`|A'(x_0)|` はそのまま「Q=1 に対する微分の跳びの相対的な大きさ」になる。
+        既定の 1e-3 は微分の跳びが 0.002 未満のものを落とすということ。
+        実測では偽陽性が :math:`\sim 2\times10^{-5}`、真の折れ点が 1.35〜3.84 で
+        5 桁離れており、閾値の選び方に結果は鈍感である。
+        """
+        b = np.asarray(b, dtype=np.float64)
+        if b.size == 0:
+            return np.array([]), np.array([])
+        scale = float(np.max(np.abs(b)))
+        if scale == 0.0:
+            return np.array([]), np.array([])
+        b = np.where(np.abs(b) < coef_tol * scale, 0.0, b)
+
         x = np.linspace(lo, hi, n_samples)
         s = np.sign(_eval_A(b, x))
         nz = s != 0
         if nz.sum() < 2:
-            return np.array([])
+            return np.array([]), np.array([])
         s, xs = s[nz], x[nz]
         idx = np.nonzero(np.diff(s) != 0)[0]
-        return 0.5 * (xs[idx] + xs[idx + 1])
+        if idx.size == 0:
+            return np.array([]), np.array([])
+
+        cand = 0.5 * (xs[idx] + xs[idx + 1])
+        dA = polyder(_A_coeffs(b))
+        slopes = np.abs(horner(dA, cand))
+        keep = slopes > slope_tol
+        return cand[keep], slopes[keep]
 
     def roots_of_A(self, b: ArrayLike, lo: float, hi: float) -> NDArray[np.floating]:
         """:math:`A(x)=0` の実根（符号変化を伴わないものも含む）。参考用。"""

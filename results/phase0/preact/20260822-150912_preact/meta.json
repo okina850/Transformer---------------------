@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-08-22T15:09:12",
+  "seed": 0,
+  "git": {
+    "commit": "b041b633d6be7c0069b98bb692aabd4daf3441ab",
+    "commit_short": "b041b633d6be",
+    "branch": "master",
+    "is_dirty": true,
+    "dirty_files": [
+      "M docs/glossary.md",
+      " M docs/research_context.md",
+      "?? configs/phase0_preact.yaml",
+      "?? scripts/run_phase0_preact.py",
+      "?? src/eval/"
+    ]
+  },
+  "env": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\user\\venvs\\rational_activation\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "matplotlib": "3.11.1",
+      "pandas": "3.0.5",
+      "torch": "2.13.0+cu130",
+      "transformers": "5.15.0",
+      "datasets": "5.0.1",
+      "yaml": "6.0.3"
+    },
+    "gpu": {
+      "torch_version": "2.13.0+cu130",
+      "cuda_build_version": "13.0",
+      "available": true,
+      "device_name": "NVIDIA GeForce RTX 3060",
+      "total_memory_gb": 12.0,
+      "capability": "8.6"
+    }
+  },
+  "command": "scripts/run_phase0_preact.py --config configs/phase0_preact.yaml",
+  "cwd": "G:\\マイドライブ\\TMU_Master_Research\\Transformerにおける学習可能有理活性化関数の評価と改善"
+}
