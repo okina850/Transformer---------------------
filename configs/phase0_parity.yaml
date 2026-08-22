@@ -1,0 +1,32 @@
+# Phase 0 / Day 3: torch 実装の数値パリティ試験と float32 条件数評価（T3・T4）
+#
+# 目的:
+#   1. torch 実装が numpy 参照実装と一致することの確認（ここがずれたら全部疑わしい）
+#   2. float32 での精度劣化の基準値取得
+#      （Phase 1 で「不安定」が出たとき、最適化か浮動小数点かを切り分けるため）
+#   3. 分母設計間の平滑性の定量化（T3）
+#   4. Phase 1 の R1〜R4 に対応する条件の Vandermonde 条件数の実測
+#
+# 実行: python scripts/run_phase0_parity.py --config configs/phase0_parity.yaml
+
+seed: 0
+
+# null なら results/phase0/fit/ の最新実行を自動で拾う
+coefficients: null
+
+only_targets: [gelu_tanh, silu]
+
+n_eval: 20001
+extrapolation: {lo: -15.0, hi: 15.0, n: 30001}
+
+# Phase 1 の比較条件（research_context 改訂3 の 2x2）。型は全条件 [5,4] 固定。
+phase1_target: gelu_tanh
+phase1_m: 5
+phase1_n: 4
+phase1_conditions:
+  - [R1, abs,  paper]   # safe PAU x [-3,3]  = RAFT の完全再現
+  - [R2, abs,  wide]    # safe PAU x [-6,6]
+  - [R3, sqrt, paper]   # 平滑分母 x [-3,3]
+  - [R4, sqrt, wide]    # 平滑分母 x [-6,6]
+
+device: cuda

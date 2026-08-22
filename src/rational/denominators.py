@@ -130,9 +130,12 @@ class AbsDenominator(Denominator):
         hi: float,
         n_samples: int = 200001,
         coef_tol: float = 1e-6,
-        slope_tol: float = 1e-6,
+        slope_tol: float = 1e-3,
     ) -> NDArray[np.floating]:
         r"""区間内の**真の**微分不連続点（:math:`A(x)` が有意な傾きで符号を変える点）。
+
+        既定値は :meth:`kinks_with_severity` と必ず一致させること
+        （食い違うと同じ入力で違う個数を返す）。
 
         重根（接するだけ）を折れ点と誤検出しないよう、根の位置ではなく
         密なグリッド上の符号変化で判定し、さらに2段階で偽陽性を落とす。

@@ -1,0 +1,27 @@
+seed: 0
+coefficients: null
+only_targets:
+- gelu_tanh
+- silu
+n_eval: 20001
+extrapolation:
+  lo: -15.0
+  hi: 15.0
+  n: 30001
+phase1_target: gelu_tanh
+phase1_m: 5
+phase1_n: 4
+phase1_conditions:
+- - R1
+  - abs
+  - paper
+- - R2
+  - abs
+  - wide
+- - R3
+  - sqrt
+  - paper
+- - R4
+  - sqrt
+  - wide
+device: cuda
