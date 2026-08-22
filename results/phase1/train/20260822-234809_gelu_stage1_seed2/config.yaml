@@ -1,0 +1,15 @@
+seed: 0
+data_dir: data/tinystories
+model: configs/phase1_model.yaml
+train:
+  batch_size: 32
+  total_steps: 12200
+  eval_interval: 600
+  eval_batches: 20
+  lr_theta: 0.001
+  weight_decay: 0.0
+  warmup_ratio: 0.01
+  grad_clip_norm: 1.0
+device: cuda
+ffn_kind: gelu
+rational_condition: null
