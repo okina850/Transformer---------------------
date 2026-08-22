@@ -1,0 +1,25 @@
+# Phase 1 / Stage 1〜3: 本番学習の共通設定
+#
+# ベンチマーク結果 (2026-08-22): batch=32, block=256 で 60,285 tokens/sec,
+# peak VRAM 2.49GB。承認済み予算「1条件あたり100Mトークン」を
+# total_steps=12200 (=32*256*12200=99,942,400 トークン) で満たす。
+# 見積もり時間: 100M / 60,285 tok/s ≈ 27.6分/条件（1条件1 seedあたり）。
+
+seed: 0  # scripts/train.py --seed で上書きする
+data_dir: data/tinystories
+model: configs/phase1_model.yaml
+
+train:
+  batch_size: 32
+  total_steps: 12200
+  eval_interval: 600     # 全体で約20回評価
+  eval_batches: 20
+  lr_theta: null          # Stage 1 の探索結果で埋める
+  weight_decay: 0.0
+  warmup_ratio: 0.01      # RAFT Table 10 と同じ 1%
+  grad_clip_norm: 1.0     # Pre-registration で確定済み
+
+device: cuda
+
+ffn_kind: gelu           # scripts/train.py --config 呼び出し時に上書きする
+rational_condition: null

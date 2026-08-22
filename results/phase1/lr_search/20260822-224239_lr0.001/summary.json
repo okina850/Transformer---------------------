@@ -1,0 +1,12 @@
+{
+  "stop_reason": "completed",
+  "final_step": 1500,
+  "total_steps_planned": 1500,
+  "elapsed_sec": 217.13911940006074,
+  "seed": 0,
+  "n_loss_spikes": 0,
+  "loss_spike_steps": [],
+  "diverged": false,
+  "diverged_step": null,
+  "diverged_reason": null
+}
