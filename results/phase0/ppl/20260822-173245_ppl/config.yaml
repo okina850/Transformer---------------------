@@ -1,0 +1,36 @@
+seed: 0
+coefficients: null
+model: gpt2
+dataset:
+  name: Salesforce/wikitext
+  config: wikitext-2-raw-v1
+  split: validation
+eval:
+  n_ctx: 1024
+  stride: 512
+  batch_size: 4
+  dtype: float32
+conditions:
+- name: baseline
+  kind: original
+- name: R1_abs_paper
+  kind: rational
+  key: gelu_tanh|paper|m5n4|abs
+- name: R2_abs_wide
+  kind: rational
+  key: gelu_tanh|wide|m5n4|abs
+- name: R3_sqrt_paper
+  kind: rational
+  key: gelu_tanh|paper|m5n4|sqrt
+  eps: 0.001
+- name: R4_sqrt_wide
+  kind: rational
+  key: gelu_tanh|wide|m5n4|sqrt
+  eps: 0.001
+- name: R5_abs_wide_matched_precision
+  kind: rational
+  key: gelu_tanh|wide|m7n6|abs
+- name: pade_at_0_paper
+  kind: rational
+  key: gelu_tanh|paper|m5n4|pade@0
+device: cuda

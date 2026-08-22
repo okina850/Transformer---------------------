@@ -1,0 +1,45 @@
+# Phase 0 / Day 5: GPT-2 の FFN 活性化を有理近似に差し替え、perplexity 劣化を測る
+#
+# 学習は一切行わない。既存の GELU 用の重みに対して活性化だけ差し替える。
+# T5 で測った素の GPT-2 perplexity (25.56) を基準値とする（本スクリプトでも
+# 同じ設定で再計測し、単一の成果物内で自己完結させる）。
+#
+# 実行: python scripts/run_phase0_ppl.py --config configs/phase0_ppl.yaml
+
+seed: 0
+coefficients: null  # null なら results/phase0/fit/ の最新実行を自動で拾う
+
+model: gpt2
+dataset:
+  name: Salesforce/wikitext
+  config: wikitext-2-raw-v1
+  split: validation
+
+eval:
+  n_ctx: 1024
+  stride: 512
+  batch_size: 4
+  dtype: float32
+
+# 比較条件。target は必ず gelu_tanh（GPT-2 の gelu_new と一致させる）。
+# key は coefficients.json のキー形式 "target|interval|mMnN|denom"。
+conditions:
+  - {name: baseline,  kind: original}
+
+  - {name: R1_abs_paper,  kind: rational, key: "gelu_tanh|paper|m5n4|abs"}
+  - {name: R2_abs_wide,   kind: rational, key: "gelu_tanh|wide|m5n4|abs"}
+  - {name: R3_sqrt_paper, kind: rational, key: "gelu_tanh|paper|m5n4|sqrt", eps: 1.0e-3}
+  - {name: R4_sqrt_wide,  kind: rational, key: "gelu_tanh|wide|m5n4|sqrt", eps: 1.0e-3}
+
+  # 切り分け専用参照条件（ユーザー指示、2026-08-22）:
+  # [-6,6] でフィットしつつパラメータ数を上げ (m=7,n=6, 14パラメータ)、
+  # 区間内 sup 誤差を R1 (8.395e-4) に最も近づけたもの (実測 1.031e-3, 1.23倍)。
+  # Phase 0 の掃引範囲 [7,6] が最も近い一致で、既に coefficients.json にある。
+  # R2 が R1 に劣った場合、原因が「区間拡大そのもの」か「区間内精度の低下」かを
+  # この条件で切り分ける: R5 が R1 に勝てば区間拡大に価値がある、負ければ無い。
+  - {name: R5_abs_wide_matched_precision, kind: rational, key: "gelu_tanh|wide|m7n6|abs"}
+
+  # PAU 論文どおりの初期化（x=0 での真の Pade 近似）。再現性の担保。
+  - {name: pade_at_0_paper, kind: rational, key: "gelu_tanh|paper|m5n4|pade@0"}
+
+device: cuda
