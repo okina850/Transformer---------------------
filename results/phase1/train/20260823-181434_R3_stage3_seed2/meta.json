@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-08-23T18:14:34",
+  "seed": 2,
+  "git": {
+    "commit": "3a0292744b03fc8e58cc85d2d26ea14d9d975aca",
+    "commit_short": "3a0292744b03",
+    "branch": "master",
+    "is_dirty": true,
+    "dirty_files": [
+      "M results/phase1/train/20260823-161333_R3_stage3_seed0/eval_log.jsonl",
+      " M results/phase1/train/20260823-161333_R3_stage3_seed0/step_log.jsonl",
+      "?? results/phase1/train/20260823-161333_R3_stage3_seed0/summary.json",
+      "?? results/phase1/train/20260823-171411_R3_stage3_seed1/"
+    ]
+  },
+  "env": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\user\\venvs\\rational_activation\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "matplotlib": "3.11.1",
+      "pandas": "3.0.5",
+      "torch": "2.13.0+cu130",
+      "transformers": "5.15.0",
+      "datasets": "5.0.1",
+      "yaml": "6.0.3"
+    },
+    "gpu": {
+      "torch_version": "2.13.0+cu130",
+      "cuda_build_version": "13.0",
+      "available": true,
+      "device_name": "NVIDIA GeForce RTX 3060",
+      "total_memory_gb": 12.0,
+      "capability": "8.6"
+    }
+  },
+  "command": "scripts/run_condition.py --ffn-kind rational --rational-condition R3 --seeds 0 1 2 --lr-theta 1e-3 --tag stage3",
+  "cwd": "G:\\マイドライブ\\TMU_Master_Research\\Transformerにおける学習可能有理活性化関数の評価と改善",
+  "extra": {
+    "n_params": 13870908
+  }
+}
