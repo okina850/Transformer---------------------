@@ -1,0 +1,12 @@
+{
+  "stop_reason": "diverged:grad_norm_spike",
+  "final_step": 2249,
+  "total_steps_planned": 12200,
+  "elapsed_sec": 640.721108000027,
+  "seed": 2,
+  "n_loss_spikes": 0,
+  "loss_spike_steps": [],
+  "diverged": true,
+  "diverged_step": 2249,
+  "diverged_reason": "grad_norm_spike"
+}
