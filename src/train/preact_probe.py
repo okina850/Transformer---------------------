@@ -33,10 +33,15 @@ def collect_preact_quantiles(model, x: torch.Tensor) -> list[dict]:
             store.append(out.detach())
         return hook
 
+    # 活性化関数に入る直前の値を出すモジュールは FFN の種類ごとに違う:
+    #   GELUFFN / RationalFFN -> fc1
+    #   SwiGLUFFN             -> w_gate（SiLU に入るのはゲート側）
+    # ここを取り違えると、その条件だけ分位点が空になる（実際 B2 で発生した）。
     layers_with_preact = []
     for blk in model.blocks:
-        if hasattr(blk.ffn, "fc1"):
-            layers_with_preact.append(blk.ffn.fc1)
+        mod = getattr(blk.ffn, "fc1", None) or getattr(blk.ffn, "w_gate", None)
+        if mod is not None:
+            layers_with_preact.append(mod)
 
     for mod in layers_with_preact:
         handles.append(mod.register_forward_hook(make_hook(captured)))
