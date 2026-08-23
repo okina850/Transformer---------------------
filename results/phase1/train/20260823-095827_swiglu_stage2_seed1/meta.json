@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-08-23T09:58:27",
+  "seed": 1,
+  "git": {
+    "commit": "5cad7c2ceb334472537a4a552e71e919880fa28f",
+    "commit_short": "5cad7c2ceb33",
+    "branch": "master",
+    "is_dirty": true,
+    "dirty_files": [
+      "?? results/phase1/train/20260823-092842_swiglu_stage2_seed0/"
+    ]
+  },
+  "env": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\user\\venvs\\rational_activation\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "matplotlib": "3.11.1",
+      "pandas": "3.0.5",
+      "torch": "2.13.0+cu130",
+      "transformers": "5.15.0",
+      "datasets": "5.0.1",
+      "yaml": "6.0.3"
+    },
+    "gpu": {
+      "torch_version": "2.13.0+cu130",
+      "cuda_build_version": "13.0",
+      "available": true,
+      "device_name": "NVIDIA GeForce RTX 3060",
+      "total_memory_gb": 12.0,
+      "capability": "8.6"
+    }
+  },
+  "command": "scripts/run_condition.py --ffn-kind swiglu --seeds 0 1 2 --lr-theta 1e-3 --tag stage2",
+  "cwd": "G:\\マイドライブ\\TMU_Master_Research\\Transformerにおける学習可能有理活性化関数の評価と改善",
+  "extra": {
+    "n_params": 13870848
+  }
+}
