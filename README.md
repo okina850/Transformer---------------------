@@ -1,4 +1,11 @@
 # GPTの活性化関数を「学習可能な有理関数」に置き換えてみた
+## はじめに
+一目見てわかる概要として。IBIS2026にて発表に使った[ポスター](./docs/poster.pdf)をご覧ください。
+[![Research Poster](./images/poster.png)](./docs/poster.pdf)
+
+以下の章は、文章による概要説明になります。
+
+実験の詳細な設定、過程について知りたい方は、[docs/FULL_REPORT.md](docs/FULL_REPORT.md) をご覧ください。
 
 ## 背景
 
